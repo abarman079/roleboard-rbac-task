@@ -226,7 +226,7 @@ button {
 
 .user-tabs {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 18px;
   margin-bottom: 28px;
 }
@@ -768,6 +768,55 @@ td small {
   .main-area {
     padding: 20px;
   }
+  .role-surface {
+  --active-role-color: #6c63ff;
+  border-top: 3px solid var(--active-role-color);
+  transition: border-color 0.22s ease, background-color 0.22s ease;
+}
+
+.role-surface.role-super-admin {
+  --active-role-color: #3d2b8e;
+}
+
+.role-surface.role-moderator {
+  --active-role-color: #0f5e8a;
+}
+
+.role-surface.role-regular-user {
+  --active-role-color: #0a7c5c;
+}
+
+.role-surface.role-guest {
+  --active-role-color: #5a5a72;
+}
+
+.profile-circle {
+  transition: background-color 0.22s ease, transform 0.22s ease;
+}
+
+.profile-circle.role-super-admin,
+.profile-circle.role-moderator,
+.profile-circle.role-regular-user,
+.profile-circle.role-guest {
+  background: var(--active-role-color);
+}
+
+.user-tab {
+  transition:
+    border-color 0.18s ease,
+    background-color 0.18s ease,
+    transform 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.user-tab.selected {
+  transform: translateY(-2px);
+}
+
+.user-tab.selected span {
+  transform: scale(1.04);
+  transition: transform 0.18s ease;
+}
 
   .top-bar,
   .panel-header,

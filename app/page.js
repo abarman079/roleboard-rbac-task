@@ -19,6 +19,7 @@ const visibleUserEmails = [
   "sarah.admin@example.com",
   "mina.mod@example.com",
   "akib.user@example.com",
+  "hasan.user@example.com",
   "guest@example.com",
 ];
 
@@ -123,6 +124,10 @@ export default function Home() {
       setMessage("");
     }, 2600);
   }
+  function switchUser(user) {
+  setSelectedUser(user);
+  showMessage("Active role changed to " + roleNames[user.role] + ".");
+}
 
   function getShortName(name) {
     return name
@@ -424,7 +429,7 @@ export default function Home() {
         </div>
       </aside>
 
-      <section className="main-area" id="dashboard">
+      <section className={"main-area role-surface " + getRoleClass(selectedUser.role)} id="dashboard">
         <header className="top-bar">
           <div>
             <h2>Role Based Post & Comment Management</h2>
@@ -441,7 +446,9 @@ export default function Home() {
               onChange={(event) => setSearchText(event.target.value)}
             />
             <button onClick={exportData}>Export</button>
-            <div className="profile-circle">{selectedUser.shortName}</div>
+            <div className={"profile-circle " + getRoleClass(selectedUser.role)}>
+  {selectedUser.shortName}
+</div>
           </div>
         </header>
 
@@ -451,7 +458,7 @@ export default function Home() {
           {users.map((user) => (
             <button
               key={user.id}
-              onClick={() => setSelectedUser(user)}
+              onClick={() => switchUser(user)}
               className={
                 selectedUser.id === user.id
                   ? "user-tab selected " + getRoleClass(user.role)
