@@ -6,37 +6,37 @@ const users = [
   {
     id: 1,
     name: "Sarah Admin",
+    shortName: "SA",
     role: "Super Admin",
     email: "sarah.admin@example.com",
-    className: "super-admin",
   },
   {
     id: 2,
     name: "Mina Moderator",
+    shortName: "MM",
     role: "Moderator",
     email: "mina.mod@example.com",
-    className: "moderator",
   },
   {
     id: 3,
     name: "Akib Regular",
+    shortName: "AR",
     role: "Regular User",
     email: "akib.user@example.com",
-    className: "regular-user",
   },
   {
     id: 4,
     name: "Hasan Regular",
+    shortName: "HR",
     role: "Regular User",
     email: "hasan.user@example.com",
-    className: "regular-user",
   },
   {
     id: 5,
     name: "Guest Visitor",
+    shortName: "GV",
     role: "Guest",
     email: "guest@example.com",
-    className: "guest",
   },
 ];
 
@@ -44,10 +44,9 @@ const posts = [
   {
     id: 1,
     title: "Welcome to RoleBoard",
-    content:
-      "This post is created by Akib Regular. Other users can read it and regular users can comment on it.",
     authorId: 3,
     author: "Akib Regular",
+    status: "Active",
     comments: [
       {
         id: 1,
@@ -66,10 +65,9 @@ const posts = [
   {
     id: 2,
     title: "Frontend permission preview",
-    content:
-      "This screen is only the frontend design phase. Backend permission checks will be added later.",
     authorId: 4,
     author: "Hasan Regular",
+    status: "Active",
     comments: [
       {
         id: 3,
@@ -81,60 +79,59 @@ const posts = [
   },
 ];
 
-const roleDetails = {
-  "Super Admin": {
-    title: "System controller",
+const roleCards = [
+  {
+    role: "Super Admin",
+    title: "Full Control",
     text: "Can delete any post or comment in the system.",
   },
-  Moderator: {
-    title: "Content reviewer",
+  {
+    role: "Moderator",
+    title: "Content Review",
     text: "Can delete any post or comment, but cannot manage users.",
   },
-  "Regular User": {
-    title: "Normal member",
-    text: "Can create posts and comments, and manage their own content.",
+  {
+    role: "Regular User",
+    title: "Member Access",
+    text: "Can create posts and comments, and manage own posts.",
   },
-  Guest: {
-    title: "Read only visitor",
+  {
+    role: "Guest",
+    title: "Read Only",
     text: "Can only view posts and comments.",
   },
-};
+];
 
 export default function Home() {
   const [selectedUser, setSelectedUser] = useState(users[2]);
 
-  const currentRole = selectedUser.role;
-  const canCreatePost = currentRole === "Regular User";
-  const canCreateComment = currentRole === "Regular User";
+  function canCreatePost() {
+    return selectedUser.role === "Regular User";
+  }
 
-  function showMessage(action, allowed) {
-    if (allowed) {
-      alert("Allowed: " + action);
-    } else {
-      alert("Blocked: This role does not have permission for this action.");
-    }
+  function canCreateComment() {
+    return selectedUser.role === "Regular User";
   }
 
   function canUpdatePost(post) {
-    return currentRole === "Regular User" && selectedUser.id === post.authorId;
+    return selectedUser.role === "Regular User" && selectedUser.id === post.authorId;
   }
 
   function canDeletePost(post) {
-    if (currentRole === "Super Admin") return true;
-    if (currentRole === "Moderator") return true;
-    if (currentRole === "Regular User" && selectedUser.id === post.authorId) {
-      return true;
-    }
+    if (selectedUser.role === "Super Admin") return true;
+    if (selectedUser.role === "Moderator") return true;
+    if (selectedUser.role === "Regular User" && selectedUser.id === post.authorId) return true;
+
     return false;
   }
 
   function canDeleteComment(post, comment) {
-    if (currentRole === "Super Admin") return true;
-    if (currentRole === "Moderator") return true;
+    if (selectedUser.role === "Super Admin") return true;
+    if (selectedUser.role === "Moderator") return true;
 
     if (
-      currentRole === "Regular User" &&
-      (selectedUser.id === comment.authorId || selectedUser.id === post.authorId)
+      selectedUser.role === "Regular User" &&
+      (selectedUser.id === post.authorId || selectedUser.id === comment.authorId)
     ) {
       return true;
     }
@@ -142,173 +139,241 @@ export default function Home() {
     return false;
   }
 
+  function showResult(action, allowed) {
+    if (allowed) {
+      alert("Allowed: " + action);
+    } else {
+      alert("Blocked: You do not have permission for this action.");
+    }
+  }
+
+  function getBadgeClass(role) {
+    if (role === "Super Admin") return "badge red";
+    if (role === "Moderator") return "badge yellow";
+    if (role === "Regular User") return "badge green";
+    return "badge purple";
+  }
+
   return (
-    <main className="page">
-      <section className="hero">
-        <div>
-          <p className="eyebrow">Full Stack Developer Task</p>
-          <h1>RoleBoard</h1>
-          <p className="hero-text">
-            A clean role-based post and comment management system with four
-            user roles: Super Admin, Moderator, Regular User, and Guest.
-          </p>
+    <main className="app-shell">
+      <aside className="sidebar">
+        <div className="brand">
+          <div className="brand-mark">R</div>
+          <div>
+            <h1>RoleBoard</h1>
+            <p>RBAC System</p>
+          </div>
         </div>
 
-        <div className="hero-card">
-          <p>Current user</p>
-          <h2>{selectedUser.name}</h2>
-          <span className={"role-badge " + selectedUser.className}>
-            {selectedUser.role}
-          </span>
-        </div>
-      </section>
+        <nav className="side-menu">
+          <button className="menu-item active">Dashboard</button>
+          <button className="menu-item">Posts</button>
+          <button className="menu-item">Comments</button>
+          <button className="menu-item">Permissions</button>
+          <button className="menu-item">Users</button>
+        </nav>
 
-      <section className="role-section">
-        <div className="section-heading">
-          <p className="eyebrow">Step 1</p>
-          <h2>Choose a role to test permissions</h2>
+        <div className="sidebar-card">
+          <p>Logged in as</p>
+          <strong>{selectedUser.name}</strong>
+          <span className={getBadgeClass(selectedUser.role)}>{selectedUser.role}</span>
         </div>
+      </aside>
 
-        <div className="role-grid">
+      <section className="main-area">
+        <header className="top-bar">
+          <div>
+            <p className="page-label">Full Stack Developer Task</p>
+            <h2>Role Based Post & Comment Management</h2>
+            <span>Test different users and see which actions are allowed or blocked.</span>
+          </div>
+
+          <div className="top-actions">
+            <button>Search</button>
+            <button>Export</button>
+            <div className="profile-circle">{selectedUser.shortName}</div>
+          </div>
+        </header>
+
+        <section className="user-tabs">
           {users.map((user) => (
             <button
               key={user.id}
-              className={
-                selectedUser.id === user.id
-                  ? "role-card active-role"
-                  : "role-card"
-              }
               onClick={() => setSelectedUser(user)}
+              className={selectedUser.id === user.id ? "user-tab selected" : "user-tab"}
             >
-              <span className={"role-badge " + user.className}>
-                {user.role}
-              </span>
-              <strong>{user.name}</strong>
-              <small>{user.email}</small>
+              <span>{user.shortName}</span>
+              <div>
+                <strong>{user.name}</strong>
+                <small>{user.role}</small>
+              </div>
             </button>
           ))}
-        </div>
-      </section>
+        </section>
 
-      <section className="dashboard">
-        <aside className="side-panel">
-          <div className="panel-card">
-            <p className="eyebrow">Role summary</p>
-            <h2>{roleDetails[currentRole].title}</h2>
-            <p>{roleDetails[currentRole].text}</p>
-          </div>
-
-          <div className="panel-card">
-            <p className="eyebrow">Quick actions</p>
-
-            <button
-              className={canCreatePost ? "action-btn" : "action-btn disabled"}
-              onClick={() => showMessage("Create post", canCreatePost)}
-            >
-              Create Post
-            </button>
-
-            <button
+        <section className="summary-grid">
+          {roleCards.map((item) => (
+            <article
+              key={item.role}
               className={
-                canCreateComment ? "action-btn" : "action-btn disabled"
+                selectedUser.role === item.role ? "summary-card active-card" : "summary-card"
               }
-              onClick={() => showMessage("Create comment", canCreateComment)}
             >
-              Create Comment
-            </button>
+              <p>{item.role}</p>
+              <h3>{item.title}</h3>
+              <span>{item.text}</span>
+            </article>
+          ))}
+        </section>
 
-            <button
-              className="action-btn disabled"
-              onClick={() => showMessage("Manage users", false)}
-            >
-              Manage Users
-            </button>
-          </div>
-
-          <div className="panel-card checklist">
-            <p className="eyebrow">Permission checklist</p>
-            <p>{canCreatePost ? "Allowed" : "Blocked"}: Create post</p>
-            <p>{canCreateComment ? "Allowed" : "Blocked"}: Create comment</p>
-            <p>
-              {currentRole === "Guest" ? "Blocked" : "Role based"}: Delete
-              content
-            </p>
-          </div>
-        </aside>
-
-        <section className="feed">
-          <div className="section-heading">
-            <p className="eyebrow">Demo Feed</p>
-            <h2>Posts and comments</h2>
-          </div>
-
-          {posts.map((post) => (
-            <article className="post-card" key={post.id}>
-              <div className="post-top">
-                <div>
-                  <h3>{post.title}</h3>
-                  <p>
-                    Posted by <strong>{post.author}</strong>
-                  </p>
-                </div>
-
-                <div className="post-actions">
-                  <button
-                    className={
-                      canUpdatePost(post) ? "small-btn" : "small-btn disabled"
-                    }
-                    onClick={() =>
-                      showMessage("Update own post", canUpdatePost(post))
-                    }
-                  >
-                    Edit
-                  </button>
-
-                  <button
-                    className={
-                      canDeletePost(post) ? "small-btn danger" : "small-btn disabled"
-                    }
-                    onClick={() =>
-                      showMessage("Delete post", canDeletePost(post))
-                    }
-                  >
-                    Delete
-                  </button>
-                </div>
+        <section className="content-grid">
+          <div className="panel large-panel">
+            <div className="panel-header">
+              <div>
+                <p className="page-label">Permission Preview</p>
+                <h3>Post Management</h3>
               </div>
 
-              <p className="post-content">{post.content}</p>
+              <button
+                className={canCreatePost() ? "primary-btn" : "primary-btn disabled"}
+                onClick={() => showResult("Create post", canCreatePost())}
+              >
+                Create Post
+              </button>
+            </div>
 
-              <div className="comment-box">
-                <h4>Comments</h4>
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Post Title</th>
+                    <th>Owner</th>
+                    <th>Status</th>
+                    <th>Edit</th>
+                    <th>Delete</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {posts.map((post) => (
+                    <tr key={post.id}>
+                      <td>
+                        <strong>{post.title}</strong>
+                        <small>{post.comments.length} comments available</small>
+                      </td>
+                      <td>{post.author}</td>
+                      <td>
+                        <span className="status-pill">{post.status}</span>
+                      </td>
+                      <td>
+                        <button
+                          className={canUpdatePost(post) ? "outline-btn" : "outline-btn blocked"}
+                          onClick={() => showResult("Edit post", canUpdatePost(post))}
+                        >
+                          Edit
+                        </button>
+                      </td>
+                      <td>
+                        <button
+                          className={canDeletePost(post) ? "danger-btn" : "danger-btn blocked"}
+                          onClick={() => showResult("Delete post", canDeletePost(post))}
+                        >
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="panel small-panel">
+            <div className="panel-header">
+              <div>
+                <p className="page-label">Current Permission</p>
+                <h3>Quick Test</h3>
+              </div>
+            </div>
+
+            <div className="quick-list">
+              <button
+                className={canCreatePost() ? "quick-btn allowed" : "quick-btn blocked"}
+                onClick={() => showResult("Create post", canCreatePost())}
+              >
+                Create Post
+              </button>
+
+              <button
+                className={canCreateComment() ? "quick-btn allowed" : "quick-btn blocked"}
+                onClick={() => showResult("Create comment", canCreateComment())}
+              >
+                Create Comment
+              </button>
+
+              <button
+                className="quick-btn blocked"
+                onClick={() => showResult("Manage users", false)}
+              >
+                Manage Users
+              </button>
+            </div>
+
+            <div className="note-box">
+              <strong>Rule note</strong>
+              <p>
+                This phase is frontend only. Real server-side permission checking will be added
+                in the backend phase.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section className="panel">
+          <div className="panel-header">
+            <div>
+              <p className="page-label">Comment Rules</p>
+              <h3>Comment Delete Testing</h3>
+            </div>
+
+            <button
+              className={canCreateComment() ? "primary-btn" : "primary-btn disabled"}
+              onClick={() => showResult("Create comment", canCreateComment())}
+            >
+              Add Comment
+            </button>
+          </div>
+
+          <div className="comment-grid">
+            {posts.map((post) => (
+              <article className="comment-card" key={post.id}>
+                <h4>{post.title}</h4>
+                <p>Post owner: {post.author}</p>
 
                 {post.comments.map((comment) => (
-                  <div className="comment" key={comment.id}>
+                  <div className="comment-row" key={comment.id}>
                     <div>
                       <strong>{comment.author}</strong>
-                      <p>{comment.text}</p>
+                      <span>{comment.text}</span>
                     </div>
 
                     <button
                       className={
                         canDeleteComment(post, comment)
-                          ? "small-btn danger"
-                          : "small-btn disabled"
+                          ? "danger-btn"
+                          : "danger-btn blocked"
                       }
                       onClick={() =>
-                        showMessage(
-                          "Delete comment",
-                          canDeleteComment(post, comment)
-                        )
+                        showResult("Delete comment", canDeleteComment(post, comment))
                       }
                     >
                       Delete
                     </button>
                   </div>
                 ))}
-              </div>
-            </article>
-          ))}
+              </article>
+            ))}
+          </div>
         </section>
       </section>
     </main>
