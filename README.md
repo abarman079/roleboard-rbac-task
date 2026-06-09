@@ -1,36 +1,64 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# RoleBoard - Role Based Post and Comment Management System
 
-## Getting Started
+RoleBoard is a small full stack web application created for a Full Stack Developer job task.
 
-First, run the development server:
+The main goal of this project is to show role-based permissions for posts and comments using four different roles:
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- Super Admin
+- Moderator
+- Regular User
+- Guest
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Task Requirements
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+The system must support four roles with different permissions.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Roles
 
-## Learn More
+| Role | Permission |
+|---|---|
+| Super Admin | Full access to delete anything in the system |
+| Moderator | Can delete any post or comment, but cannot manage users |
+| Regular User | Can create posts and comments, and can update or delete only their own posts |
+| Guest | Can only view/read everything |
 
-To learn more about Next.js, take a look at the following resources:
+## Post Rules
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- Regular Users can create posts.
+- Each user can only update or delete their own posts.
+- Super Admin can delete anything.
+- Moderator can delete any post.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Comment Rules
 
-## Deploy on Vercel
+- If User A creates a post, User B can comment on it.
+- User A, the post owner, can delete User B's comment.
+- User B can also delete their own comment.
+- User C cannot delete User B's comment.
+- Moderator can delete any comment.
+- Super Admin can delete any comment.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Tech Stack
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Next.js
+- React
+- CSS
+- Prisma and SQLite will be added later
+
+## Current Status
+
+Phase 0 completed:
+
+- Project created
+- Basic Next.js setup completed
+- Initial README added
+- Project pushed to GitHub
+
+## Next Phases
+
+1. Frontend layout and UI design
+2. Database schema and seed data
+3. Backend API routes
+4. Role-based permission logic
+5. Frontend and backend connection
+6. Testing and final README update
