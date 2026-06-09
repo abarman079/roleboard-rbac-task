@@ -15,7 +15,7 @@ async function main() {
 
   const superAdmin = await prisma.user.create({
     data: {
-      name: "Sarah Admin",
+      name: "Super Admin",
       email: "sarah.admin@example.com",
       role: Role.SUPER_ADMIN,
     },
@@ -23,7 +23,7 @@ async function main() {
 
   const moderator = await prisma.user.create({
     data: {
-      name: "Mina Moderator",
+      name: "Moderator",
       email: "mina.mod@example.com",
       role: Role.MODERATOR,
     },
