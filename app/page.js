@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   IconFileText,
   IconLayoutDashboard,
@@ -8,104 +8,47 @@ import {
   IconShield,
 } from "@tabler/icons-react";
 
-const users = [
-  {
-    id: 1,
-    name: "Sarah Admin",
-    shortName: "SA",
-    role: "Super Admin",
-    email: "sarah.admin@example.com",
-  },
-  {
-    id: 2,
-    name: "Mina Moderator",
-    shortName: "MM",
-    role: "Moderator",
-    email: "mina.mod@example.com",
-  },
-  {
-    id: 3,
-    name: "Akib Regular",
-    shortName: "AR",
-    role: "Regular User",
-    email: "akib.user@example.com",
-  },
-  {
-    id: 4,
-    name: "Guest Visitor",
-    shortName: "GV",
-    role: "Guest",
-    email: "guest@example.com",
-  },
+const roleNames = {
+  SUPER_ADMIN: "Super Admin",
+  MODERATOR: "Moderator",
+  REGULAR_USER: "Regular User",
+  GUEST: "Guest",
+};
+
+const visibleUserEmails = [
+  "sarah.admin@example.com",
+  "mina.mod@example.com",
+  "akib.user@example.com",
+  "guest@example.com",
 ];
 
 const roleCards = [
   {
-    role: "Super Admin",
+    role: "SUPER_ADMIN",
     title: "Full delete access",
     text: "Can delete any post or comment in the system.",
   },
   {
-    role: "Moderator",
+    role: "MODERATOR",
     title: "Content moderation",
     text: "Can delete any post or comment, but cannot manage users.",
   },
   {
-    role: "Regular User",
+    role: "REGULAR_USER",
     title: "Post and comment access",
     text: "Can create posts and comments, and update or delete only own posts.",
   },
   {
-    role: "Guest",
+    role: "GUEST",
     title: "Read only access",
     text: "Can only view posts and comments.",
   },
 ];
 
-const startingPosts = [
-  {
-    id: 1,
-    title: "Welcome to RoleBoard",
-    content:
-      "This post belongs to Akib Regular. Other regular users can comment on it, but only the owner, moderator, or super admin can delete comments here.",
-    authorId: 3,
-    author: "Akib Regular",
-    comments: [
-      {
-        id: 1,
-        text: "Nice post. This comment is from another regular user.",
-        authorId: 6,
-        author: "Sample Regular User",
-      },
-      {
-        id: 2,
-        text: "This is Akib's own comment for testing own-comment delete permission.",
-        authorId: 3,
-        author: "Akib Regular",
-      },
-    ],
-  },
-  {
-    id: 2,
-    title: "Permission testing checklist",
-    content:
-      "Use the role switcher to test create, edit, delete, and comment actions. The backend version will enforce the same rules through API routes.",
-    authorId: 3,
-    author: "Akib Regular",
-    comments: [
-      {
-        id: 3,
-        text: "Moderator and Super Admin should be able to delete this comment.",
-        authorId: 6,
-        author: "Sample Regular User",
-      },
-    ],
-  },
-];
-
 export default function Home() {
-  const [selectedUser, setSelectedUser] = useState(users[2]);
-  const [posts, setPosts] = useState(startingPosts);
+  const [users, setUsers] = useState([]);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [posts, setPosts] = useState([]);
   const [searchText, setSearchText] = useState("");
   const [isPostFormOpen, setIsPostFormOpen] = useState(false);
   const [editingPostId, setEditingPostId] = useState(null);
@@ -114,59 +57,111 @@ export default function Home() {
   const [activeCommentPostId, setActiveCommentPostId] = useState(null);
   const [commentText, setCommentText] = useState("");
   const [message, setMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
 
   const filteredPosts = posts.filter((post) => {
     const keyword = searchText.toLowerCase();
+    const authorName = post.author?.name || "";
 
     return (
       post.title.toLowerCase().includes(keyword) ||
       post.content.toLowerCase().includes(keyword) ||
-      post.author.toLowerCase().includes(keyword)
+      authorName.toLowerCase().includes(keyword)
     );
   });
+
+  useEffect(() => {
+    async function loadInitialData() {
+      try {
+        const usersResult = await requestApi("/api/users");
+        const postsResult = await requestApi("/api/posts");
+
+        const preparedUsers = usersResult.data
+          .filter((user) => visibleUserEmails.includes(user.email))
+          .map((user) => ({
+            ...user,
+            shortName: getShortName(user.name),
+          }));
+
+        const defaultUser =
+          preparedUsers.find((user) => user.role === "REGULAR_USER") ||
+          preparedUsers[0];
+
+        setUsers(preparedUsers);
+        setSelectedUser(defaultUser);
+        setPosts(postsResult.data);
+      } catch (error) {
+        showMessage(error.message || "Something went wrong while loading data.");
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    loadInitialData();
+  }, []);
+
+  async function requestApi(url, options = {}) {
+    const response = await fetch(url, options);
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.message || "Request failed.");
+    }
+
+    return result;
+  }
+
+  async function refreshPosts() {
+    const result = await requestApi("/api/posts");
+    setPosts(result.data);
+  }
 
   function showMessage(text) {
     setMessage(text);
 
     setTimeout(() => {
       setMessage("");
-    }, 2400);
+    }, 2600);
+  }
+
+  function getShortName(name) {
+    return name
+      .split(" ")
+      .map((word) => word[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase();
   }
 
   function canCreatePost() {
-    return selectedUser.role === "Regular User";
+    return selectedUser?.role === "REGULAR_USER";
   }
 
   function canCreateComment() {
-    return selectedUser.role === "Regular User";
+    return selectedUser?.role === "REGULAR_USER";
   }
 
   function canUpdatePost(post) {
-    return (
-      selectedUser.role === "Regular User" && selectedUser.id === post.authorId
-    );
+    return selectedUser?.role === "REGULAR_USER" && selectedUser.id === post.authorId;
   }
 
   function canDeletePost(post) {
-    if (selectedUser.role === "Super Admin") return true;
-    if (selectedUser.role === "Moderator") return true;
-    if (
-      selectedUser.role === "Regular User" &&
-      selectedUser.id === post.authorId
-    )
+    if (selectedUser?.role === "SUPER_ADMIN") return true;
+    if (selectedUser?.role === "MODERATOR") return true;
+    if (selectedUser?.role === "REGULAR_USER" && selectedUser.id === post.authorId) {
       return true;
+    }
 
     return false;
   }
 
   function canDeleteComment(post, comment) {
-    if (selectedUser.role === "Super Admin") return true;
-    if (selectedUser.role === "Moderator") return true;
+    if (selectedUser?.role === "SUPER_ADMIN") return true;
+    if (selectedUser?.role === "MODERATOR") return true;
 
     if (
-      selectedUser.role === "Regular User" &&
-      (selectedUser.id === post.authorId ||
-        selectedUser.id === comment.authorId)
+      selectedUser?.role === "REGULAR_USER" &&
+      (selectedUser.id === post.authorId || selectedUser.id === comment.authorId)
     ) {
       return true;
     }
@@ -175,18 +170,18 @@ export default function Home() {
   }
 
   function getBadgeClass(role) {
-    if (role === "Super Admin") return "badge badge-red";
-    if (role === "Moderator") return "badge badge-amber";
-    if (role === "Regular User") return "badge badge-green";
+    if (role === "SUPER_ADMIN") return "badge badge-red";
+    if (role === "MODERATOR") return "badge badge-amber";
+    if (role === "REGULAR_USER") return "badge badge-green";
     return "badge badge-slate";
   }
-  function getRoleClass(role) {
-  if (role === "Super Admin") return "role-super-admin";
-  if (role === "Moderator") return "role-moderator";
-  if (role === "Regular User") return "role-regular-user";
-  return "role-guest";
-}
 
+  function getRoleClass(role) {
+    if (role === "SUPER_ADMIN") return "role-super-admin";
+    if (role === "MODERATOR") return "role-moderator";
+    if (role === "REGULAR_USER") return "role-regular-user";
+    return "role-guest";
+  }
 
   function scrollToSection(sectionId) {
     const section = document.getElementById(sectionId);
@@ -220,77 +215,75 @@ export default function Home() {
     setIsPostFormOpen(true);
   }
 
-  function savePost(event) {
+  async function savePost(event) {
     event.preventDefault();
+
+    if (!selectedUser) return;
 
     if (!postTitle.trim() || !postContent.trim()) {
       showMessage("Please write both title and content.");
       return;
     }
 
-    if (editingPostId) {
-      const postToEdit = posts.find((post) => post.id === editingPostId);
+    try {
+      if (editingPostId) {
+        await requestApi(`/api/posts/${editingPostId}`, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            userId: selectedUser.id,
+            title: postTitle,
+            content: postContent,
+          }),
+        });
 
-      if (!postToEdit || !canUpdatePost(postToEdit)) {
-        showMessage("Blocked: you can only update your own post.");
-        return;
+        showMessage("Post updated successfully.");
+      } else {
+        await requestApi("/api/posts", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            userId: selectedUser.id,
+            title: postTitle,
+            content: postContent,
+          }),
+        });
+
+        showMessage("Post created successfully.");
       }
 
-      setPosts((currentPosts) =>
-        currentPosts.map((post) =>
-          post.id === editingPostId
-            ? {
-                ...post,
-                title: postTitle.trim(),
-                content: postContent.trim(),
-              }
-            : post,
-        ),
-      );
-
-      showMessage("Post updated successfully.");
-    } else {
-      if (!canCreatePost()) {
-        showMessage("Blocked: only Regular Users can create posts.");
-        return;
-      }
-
-      const newPost = {
-        id: Date.now(),
-        title: postTitle.trim(),
-        content: postContent.trim(),
-        authorId: selectedUser.id,
-        author: selectedUser.name,
-        comments: [],
-      };
-
-      setPosts((currentPosts) => [newPost, ...currentPosts]);
-      showMessage("Post created successfully.");
+      setPostTitle("");
+      setPostContent("");
+      setEditingPostId(null);
+      setIsPostFormOpen(false);
+      await refreshPosts();
+    } catch (error) {
+      showMessage(error.message);
     }
-
-    setPostTitle("");
-    setPostContent("");
-    setEditingPostId(null);
-    setIsPostFormOpen(false);
   }
 
-  function deletePost(post) {
-    if (!canDeletePost(post)) {
-      showMessage("Blocked: you do not have permission to delete this post.");
-      return;
-    }
+  async function deletePost(post) {
+    if (!selectedUser) return;
 
-    setPosts((currentPosts) =>
-      currentPosts.filter((item) => item.id !== post.id),
-    );
-    showMessage("Post deleted successfully.");
+    try {
+      await requestApi(`/api/posts/${post.id}?userId=${selectedUser.id}`, {
+        method: "DELETE",
+      });
+
+      showMessage("Post deleted successfully.");
+      await refreshPosts();
+    } catch (error) {
+      showMessage(error.message);
+    }
   }
 
   function startComment(postId) {
     if (!canCreateComment()) {
-      showMessage(
-        "Blocked: guests, moderators, and admins cannot create comments in this task.",
-      );
+      showMessage("Blocked: only Regular Users can create comments.");
       return;
     }
 
@@ -298,66 +291,57 @@ export default function Home() {
     setCommentText("");
   }
 
-  function saveComment(postId) {
-    if (!canCreateComment()) {
-      showMessage("Blocked: only Regular Users can create comments.");
-      return;
-    }
+  async function saveComment(postId) {
+    if (!selectedUser) return;
 
     if (!commentText.trim()) {
       showMessage("Please write a comment first.");
       return;
     }
 
-    const newComment = {
-      id: Date.now(),
-      text: commentText.trim(),
-      authorId: selectedUser.id,
-      author: selectedUser.name,
-    };
+    try {
+      await requestApi("/api/comments", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          userId: selectedUser.id,
+          postId,
+          text: commentText,
+        }),
+      });
 
-    setPosts((currentPosts) =>
-      currentPosts.map((post) =>
-        post.id === postId
-          ? {
-              ...post,
-              comments: [...post.comments, newComment],
-            }
-          : post,
-      ),
-    );
-
-    setActiveCommentPostId(null);
-    setCommentText("");
-    showMessage("Comment added successfully.");
+      setActiveCommentPostId(null);
+      setCommentText("");
+      showMessage("Comment added successfully.");
+      await refreshPosts();
+    } catch (error) {
+      showMessage(error.message);
+    }
   }
 
-  function deleteComment(post, comment) {
-    if (!canDeleteComment(post, comment)) {
-      showMessage("Blocked: you cannot delete this comment.");
-      return;
+  async function deleteComment(comment) {
+    if (!selectedUser) return;
+
+    try {
+      await requestApi(`/api/comments/${comment.id}?userId=${selectedUser.id}`, {
+        method: "DELETE",
+      });
+
+      showMessage("Comment deleted successfully.");
+      await refreshPosts();
+    } catch (error) {
+      showMessage(error.message);
     }
-
-    setPosts((currentPosts) =>
-      currentPosts.map((item) =>
-        item.id === post.id
-          ? {
-              ...item,
-              comments: item.comments.filter(
-                (savedComment) => savedComment.id !== comment.id,
-              ),
-            }
-          : item,
-      ),
-    );
-
-    showMessage("Comment deleted successfully.");
   }
 
   function exportData() {
+    if (!selectedUser) return;
+
     const fileData = {
       exportedBy: selectedUser.name,
-      selectedRole: selectedUser.role,
+      selectedRole: roleNames[selectedUser.role],
       posts,
     };
 
@@ -376,6 +360,28 @@ export default function Home() {
     showMessage("Export file downloaded.");
   }
 
+  if (isLoading || !selectedUser) {
+    return (
+      <main className="app-shell">
+        <aside className="sidebar">
+          <div className="brand">
+            <div className="brand-mark">R</div>
+            <div>
+              <h1>RoleBoard</h1>
+              <p>Access Control</p>
+            </div>
+          </div>
+        </aside>
+
+        <section className="main-area">
+          <div className="panel">
+            <h3>Loading dashboard...</h3>
+          </div>
+        </section>
+      </main>
+    );
+  }
+
   return (
     <main className="app-shell">
       <aside className="sidebar">
@@ -388,34 +394,22 @@ export default function Home() {
         </div>
 
         <nav className="side-menu">
-          <button
-            onClick={() => scrollToSection("dashboard")}
-            className="menu-item active"
-          >
+          <button onClick={() => scrollToSection("dashboard")} className="menu-item active">
             <IconLayoutDashboard size={17} stroke={1.8} />
             <span>Dashboard</span>
           </button>
 
-          <button
-            onClick={() => scrollToSection("posts")}
-            className="menu-item"
-          >
+          <button onClick={() => scrollToSection("posts")} className="menu-item">
             <IconFileText size={17} stroke={1.8} />
             <span>Posts</span>
           </button>
 
-          <button
-            onClick={() => scrollToSection("comments")}
-            className="menu-item"
-          >
+          <button onClick={() => scrollToSection("comments")} className="menu-item">
             <IconMessage size={17} stroke={1.8} />
             <span>Comments</span>
           </button>
 
-          <button
-            onClick={() => scrollToSection("roles")}
-            className="menu-item"
-          >
+          <button onClick={() => scrollToSection("roles")} className="menu-item">
             <IconShield size={17} stroke={1.8} />
             <span>Roles</span>
           </button>
@@ -425,7 +419,7 @@ export default function Home() {
           <p>Current role</p>
           <strong>{selectedUser.name}</strong>
           <span className={getBadgeClass(selectedUser.role)}>
-            {selectedUser.role}
+            {roleNames[selectedUser.role]}
           </span>
         </div>
       </aside>
@@ -435,8 +429,7 @@ export default function Home() {
           <div>
             <h2>Role Based Post & Comment Management</h2>
             <span>
-              Test permissions for posts and comments using the four required
-              roles.
+              All post and comment actions are now handled through backend API routes.
             </span>
           </div>
 
@@ -468,7 +461,7 @@ export default function Home() {
               <span>{user.shortName}</span>
               <div>
                 <strong>{user.name}</strong>
-                <small>{user.role}</small>
+                <small>{roleNames[user.role]}</small>
               </div>
             </button>
           ))}
@@ -484,7 +477,7 @@ export default function Home() {
                   : "summary-card " + getRoleClass(item.role)
               }
             >
-              <p>{item.role}</p>
+              <p>{roleNames[item.role]}</p>
               <h3>{item.title}</h3>
               <span>{item.text}</span>
             </article>
@@ -500,9 +493,7 @@ export default function Home() {
               </div>
 
               <button
-                className={
-                  canCreatePost() ? "primary-btn" : "primary-btn muted-btn"
-                }
+                className={canCreatePost() ? "primary-btn" : "primary-btn muted-btn"}
                 onClick={openCreatePostForm}
               >
                 Create Post
@@ -557,18 +548,14 @@ export default function Home() {
                         <strong>{post.title}</strong>
                         <small>{post.content}</small>
                       </td>
-                      <td>{post.author}</td>
+                      <td>{post.author?.name}</td>
                       <td>
-                        <span className="status-pill">
-                          {post.comments.length}
-                        </span>
+                        <span className="status-pill">{post.comments.length}</span>
                       </td>
                       <td>
                         <button
                           className={
-                            canUpdatePost(post)
-                              ? "outline-btn"
-                              : "outline-btn muted-btn"
+                            canUpdatePost(post) ? "outline-btn" : "outline-btn muted-btn"
                           }
                           onClick={() => openEditPostForm(post)}
                         >
@@ -578,9 +565,7 @@ export default function Home() {
                       <td>
                         <button
                           className={
-                            canDeletePost(post)
-                              ? "danger-btn"
-                              : "danger-btn muted-btn"
+                            canDeletePost(post) ? "danger-btn" : "danger-btn muted-btn"
                           }
                           onClick={() => deletePost(post)}
                         >
@@ -611,21 +596,13 @@ export default function Home() {
             </div>
 
             <div className="quick-list">
-              <div
-                className={
-                  canCreatePost() ? "quick-card allowed" : "quick-card blocked"
-                }
-              >
+              <div className={canCreatePost() ? "quick-card allowed" : "quick-card blocked"}>
                 <strong>Create post</strong>
                 <span>{canCreatePost() ? "Allowed" : "Blocked"}</span>
               </div>
 
               <div
-                className={
-                  canCreateComment()
-                    ? "quick-card allowed"
-                    : "quick-card blocked"
-                }
+                className={canCreateComment() ? "quick-card allowed" : "quick-card blocked"}
               >
                 <strong>Create comment</strong>
                 <span>{canCreateComment() ? "Allowed" : "Blocked"}</span>
@@ -640,8 +617,8 @@ export default function Home() {
             <div className="note-box">
               <strong>Security note</strong>
               <p>
-                The next phase will move these permission checks into API routes
-                so users cannot bypass rules from the browser.
+                The dashboard shows allowed actions for usability, but every create,
+                edit, and delete request is also checked again by the API.
               </p>
             </div>
           </div>
@@ -661,15 +638,11 @@ export default function Home() {
                 <div className="comment-card-top">
                   <div>
                     <h4>{post.title}</h4>
-                    <p>Post owner: {post.author}</p>
+                    <p>Post owner: {post.author?.name}</p>
                   </div>
 
                   <button
-                    className={
-                      canCreateComment()
-                        ? "primary-btn"
-                        : "primary-btn muted-btn"
-                    }
+                    className={canCreateComment() ? "primary-btn" : "primary-btn muted-btn"}
                     onClick={() => startComment(post.id)}
                   >
                     Add Comment
@@ -686,12 +659,14 @@ export default function Home() {
                     />
                     <div className="form-actions">
                       <button
+                        type="button"
                         className="primary-btn"
                         onClick={() => saveComment(post.id)}
                       >
                         Save Comment
                       </button>
                       <button
+                        type="button"
                         className="secondary-btn"
                         onClick={() => setActiveCommentPostId(null)}
                       >
@@ -704,7 +679,7 @@ export default function Home() {
                 {post.comments.map((comment) => (
                   <div className="comment-row" key={comment.id}>
                     <div>
-                      <strong>{comment.author}</strong>
+                      <strong>{comment.author?.name}</strong>
                       <span>{comment.text}</span>
                     </div>
 
@@ -714,12 +689,21 @@ export default function Home() {
                           ? "danger-btn"
                           : "danger-btn muted-btn"
                       }
-                      onClick={() => deleteComment(post, comment)}
+                      onClick={() => deleteComment(comment)}
                     >
                       Delete
                     </button>
                   </div>
                 ))}
+
+                {post.comments.length === 0 && (
+                  <div className="comment-row">
+                    <div>
+                      <strong>No comments yet</strong>
+                      <span>This post has no comments.</span>
+                    </div>
+                  </div>
+                )}
               </article>
             ))}
           </div>
